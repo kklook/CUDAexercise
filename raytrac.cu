@@ -56,6 +56,11 @@ __global__ void kernel(unsigned char * ptr)
 
 int main(void)
 {
+	cudaEvent_t start, stop;
+	HANDLE_ERROR( cudaEventCreate( &start ) );
+	HANDLE_ERROR( cudaEventCreate( &stop ) );
+	HANDLE_ERROR( cudaEventRecord( start, 0 ) );
+
 	CPUBitmap bitmap( DIM, DIM );
 	unsigned char * dev_bitmap;
 
@@ -81,6 +86,14 @@ int main(void)
 	kernel<<<grids, threads>>>( dev_bitmap );
 
 	cudaMemcpy(bitmap.get_ptr(), dev_bitmap, bitmap.image_size(), cudaMemcpyDeviceToHost );
+	HANDLE_ERROR( cudaEventRecord( stop, 0 ) );
+	HANDLE_ERROR( cudaEventSynchronize( stop ) );
+	
+	float elapsedTime;
+	HANDLE_ERROR( cudaEventElapsedTime( &elapsedTime, start, stop ) );
+	printf( "%3.1f ms\n", elapsedTime);
+	HANDLE_ERROR( cudaEventDestroy( start ) );
+	HANDLE_ERROR( cudaEventDestroy( stop ) );
 	bitmap.display_and_exit();
 
 	cudaFree( dev_bitmap );
